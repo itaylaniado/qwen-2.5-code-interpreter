@@ -155,7 +155,13 @@ async function runAndExplainCode(
       handleError(new Error(error), callbacks);
     } else if (results) {
       const { stdout, result } = results;
-      callbacks.onCodeOutputUpdate(`Output:\n${stdout}\nResult: ${result}`);
+      let output = '';
+      if (stdout != null && stdout !== '' && stdout !== 'null') output += `${stdout}\n`;
+      if (result != null && result !== '' && result !== 'null') output += `${result}`;
+      
+      if (output) {
+        callbacks.onCodeOutputUpdate(output.trim());
+      }
       await generateExplanation(messages, "```python\n" + pythonCode + "\n```", { stdout, result: result as string }, callbacks);
     }
   } catch (err) {
