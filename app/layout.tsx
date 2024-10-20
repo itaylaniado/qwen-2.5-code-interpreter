@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Link from "next/link";
-import { Github, Twitter } from "lucide-react";
+import { Github } from "lucide-react";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -37,12 +37,15 @@ export default function RootLayout({
         <nav className="bg-muted bg-opacity-80 backdrop-blur-sm fixed top-0 left-0 right-0 z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-end h-16">
-              <div className="flex items-center space-x-4">
-                <Link href="https://github.com/cfahlgren1/qwen-2.5-code-interpreter" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
+              <div className="flex items-center">
+                <Link 
+                  href="https://github.com/cfahlgren1/qwen-2.5-code-interpreter" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center text-white gap-2 border border-primary text-primary/70 px-3 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors duration-200"
+                >
                   <Github className="w-5 h-5" />
-                </Link>
-                <Link href="https://twitter.com/calebfahlgren" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
-                  <Twitter className="w-5 h-5" />
+                  <span className="text-sm font-medium">Star on GitHub</span>
                 </Link>
               </div>
             </div>
