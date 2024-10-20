@@ -25,7 +25,7 @@ self.addEventListener("message", async (event: MessageEvent<WorkerMessage>) => {
 
   if (!pyodide) {
     self.importScripts(
-      "https://cdn.jsdelivr.net/pyodide/v0.22.1/full/pyodide.js",
+      "https://cdn.jsdelivr.net/pyodide/v0.26.3/full/pyodide.js",
     );
 
     // @ts-expect-error - to be fixed
