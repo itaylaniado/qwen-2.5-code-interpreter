@@ -1,53 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import TypingAnimation from "./components/TypingAnimation";
 import { usePyodide } from "./hooks/usePyodide";
 import { Input } from "@/components/ui/input";
-import { initializeWebLLMEngine, setProgressCallback } from "../lib/llm";
 import ProgressBox from "./components/ProgressBox";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { handleAIStreaming } from "../lib/llm";
+import { handleUserInput } from "../lib/llm";
 import MarkdownRenderer from './components/MarkdownRenderer';
 import { CompletionUsage } from "@mlc-ai/web-llm";
+import { useModelLoading } from "./hooks/useModelLoading";
 
 export default function Home() {
   const [userInput, setUserInput] = useState('');
   const [result, setResult] = useState<string | null>(null);
   const [resultExplanation, setResultExplanation] = useState<string | null>(null);
   const [hasError, setHasError] = useState(false);
-  const [isModelLoaded, setIsModelLoaded] = useState(false);
   const { runPython, isLoading: isPyodideLoading } = usePyodide();
-  const [isModelLoading, setIsModelLoading] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [codeOutput, setCodeOutput] = useState<string | null>(null);
   const [usage, setUsage] = useState<CompletionUsage | null>(null);
 
-  useEffect(() => {
-    setProgressCallback(setLoadingProgress);
-  }, []);
-
-  const handleLoadModel = async () => {
-    setIsModelLoading(true);
-    try {
-      await initializeWebLLMEngine(
-        "Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC",
-        0.7,
-        1,
-        () => {
-          setIsModelLoaded(true);
-          setLoadingProgress("Model loaded successfully");
-        },
-      );
-    } catch (err) {
-      setHasError(true);
-      setResult((err as Error).message);
-    } finally {
-      setIsModelLoading(false);
-    }
-  };
+  const { isModelLoaded, isModelLoading, loadingProgress, handleLoadModel } = useModelLoading();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,7 +36,7 @@ export default function Home() {
     setUsage(null);
 
     try {
-      await handleAIStreaming(
+      await handleUserInput(
         userInput,
         runPython,
         {

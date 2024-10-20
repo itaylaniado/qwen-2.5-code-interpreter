@@ -2,15 +2,31 @@ import * as webllm from "@mlc-ai/web-llm";
 import { PyodideResult } from "../app/hooks/usePyodide";
 import { extractCodeFromMarkdown } from "./markdownParser";
 
+const SYSTEM_PROMPT = `The user will ask you a tricky question, your job is to write Python code to answer the question.
+
+Really think step by step before writing any code to ensure you're writing the correct code to answer the question correctly.
+
+Respond with a markdown code block starting with \`\`\`python and \`\`\` at the end. Make sure the code can be executed without any changes.`;
+
+const EXPLANATION_PROMPT = (result: string, stdout: string) => 
+  `Awesome! I ran your code that helped me answer my question. It returned ${result} and the printed output: ${stdout}.
+Now respond to my original question using the result and the printed output, ignoring any message before this one.`;
+
 let engine: webllm.MLCEngine | null = null;
 let progressCallback: ((progress: string) => void) | null = null;
-
 
 export interface Message {
   content: string;
   role: "system" | "user" | "assistant";
 }
 
+export interface StreamingCallbacks {
+  onResultUpdate: (result: string) => void;
+  onCodeOutputUpdate: (output: string | null) => void;
+  onExplanationUpdate: (explanation: string | null) => void;
+  onErrorUpdate: (hasError: boolean) => void;
+  onUsageUpdate: (usage: webllm.CompletionUsage) => void;
+}
 
 export async function initializeWebLLMEngine(
   selectedModel: string,
@@ -43,7 +59,7 @@ function handleEngineInitProgress(report: { text: string }): void {
   }
 }
 
-export async function streamingGenerating(
+export async function streamResponse(
   messages: webllm.ChatCompletionMessageParam[],
   onUpdate: (currentMessage: string) => void,
   onFinish: (finalMessage: string, usage: webllm.CompletionUsage) => void,
@@ -84,95 +100,98 @@ export async function streamingGenerating(
   }
 }
 
+/* 
+  This is a list of all available models via MLC which can
+  be found here: https://github.com/mlc-ai/web-llm/blob/767e1100b0d850b6157ef1ef6a01137508458ff8/src/config.ts#L308
+*/
 export const availableModels: string[] = webllm.prebuiltAppConfig.model_list
-  .filter((model) => model.model_type !== 1 && model.model_type !== 2) // filter out embedding / vlms (https://github.com/mlc-ai/web-llm/blob/a24213cda0013e1772be7084bb8cbfdfec8af407/src/config.ts#L229-L233)
+  .filter((model) => model.model_type !== 1 && model.model_type !== 2) // filter out embedding / vlms
   .map((model) => model.model_id);
 
-export interface StreamingCallbacks {
-  onResultUpdate: (result: string) => void;
-  onCodeOutputUpdate: (output: string | null) => void;
-  onExplanationUpdate: (explanation: string | null) => void;
-  onErrorUpdate: (hasError: boolean) => void;
-  onUsageUpdate: (usage: webllm.CompletionUsage) => void;
-}
-
-export async function handleAIStreaming(
-  code: string,
-  runPython: (code: string) => Promise<PyodideResult>,
+export async function handleUserInput(
+  input: string,
+  executePython: (code: string) => Promise<PyodideResult>,
   callbacks: StreamingCallbacks
 ): Promise<void> {
   const messages = [
-    {
-      role: "system",
-      content:
-        "The user will ask you a tricky question, your job is to write Python code to answer the question. \n\n" +
-        "Really think step by step before writing any code to ensure you're answering the question correctly. \n\n" +
-        "Respond with a markdown code block starting with ```python and ``` at the end. Make sure the code can be executed without any changes.",
-    },
-    {
-      role: "user",
-      content: code,
-    },
+    { role: "system", content: SYSTEM_PROMPT },
+    { role: "user", content: input },
   ];
 
   try {
-    await streamingGenerating(
+    await streamResponse(
       messages as Message[],
-      (currentMessage) => {
-        callbacks.onResultUpdate(currentMessage);
-      },
-      async (finalMessage: string, usage: webllm.CompletionUsage) => {
-        callbacks.onResultUpdate(finalMessage);
+      callbacks.onResultUpdate,
+      async (aiResponse: string, usage: webllm.CompletionUsage) => {
+        callbacks.onResultUpdate(aiResponse);
         callbacks.onUsageUpdate(usage);
-        console.log("Usage:", usage);
 
-        const extractedCode = extractCodeFromMarkdown(finalMessage);
-        if (extractedCode) {
-          try {
-            const { results, error }: PyodideResult = await runPython(extractedCode);
-            if (error) {
-              callbacks.onErrorUpdate(true);
-              callbacks.onCodeOutputUpdate(`Execution Error:\n${error}`);
-            } else if (results) {
-              callbacks.onCodeOutputUpdate(`Output:\n${results.stdout}\nResult: ${results.result}`);
+        const pythonCode = extractCodeFromMarkdown(aiResponse);
 
-              // Feed result back to LLM for explanation
-              const explanationMessages = [
-                ...messages,
-                { role: "assistant", content: finalMessage },
-                { role: "user", content: `I ran your Python code which returned ${results.result} and the printed output: ${results.stdout}.\n You should use the result and the printed output to answer the users question. No need to explain the code, just use the results to answer the question.` },
-              ];
-
-              console.log("Explanation Messages:", explanationMessages);
-
-              await streamingGenerating(
-                explanationMessages as Message[],
-                (currentExplanation) => {
-                  callbacks.onExplanationUpdate(currentExplanation);
-                },
-                (finalExplanation: string, explanationUsage: webllm.CompletionUsage) => {
-                  callbacks.onExplanationUpdate(finalExplanation);
-                  callbacks.onUsageUpdate(explanationUsage);
-                },
-                (error: Error) => {
-                  callbacks.onErrorUpdate(true);
-                  callbacks.onExplanationUpdate(`Error generating explanation: ${error.message}`);
-                }
-              );
-            }
-          } catch (err) {
-            callbacks.onErrorUpdate(true);
-            callbacks.onCodeOutputUpdate(`Execution Error:\n${(err as Error).message}`);
-          }
+        if (pythonCode) {
+          await runAndExplainCode(pythonCode, executePython, callbacks, messages as Message[],);
         }
       },
-      (error: Error) => {
-        callbacks.onErrorUpdate(true);
-        callbacks.onResultUpdate(error.message);
-      },
+      (error: Error) => handleError(error, callbacks)
     );
   } catch (err) {
-    callbacks.onErrorUpdate(true);
-    callbacks.onResultUpdate((err as Error).message);
+    handleError(err as Error, callbacks);
   }
+}
+
+/* 
+  We run the code in pyodide and then generate an explanation for the code.
+  We only send the parsed python code to pyodide to execute, not the entire markdown block (_which may contain hallucinations_).
+*/
+async function runAndExplainCode(
+  pythonCode: string,
+  executePython: (code: string) => Promise<PyodideResult>,
+  callbacks: StreamingCallbacks,
+  messages: Message[],
+): Promise<void> {
+  try {
+    const { results, error }: PyodideResult = await executePython(pythonCode);
+    if (error) {
+      handleError(new Error(error), callbacks);
+    } else if (results) {
+      const { stdout, result } = results;
+      callbacks.onCodeOutputUpdate(`Output:\n${stdout}\nResult: ${result}`);
+      await generateExplanation(messages, "```python\n" + pythonCode + "\n```", { stdout, result: result as string }, callbacks);
+    }
+  } catch (err) {
+    handleError(err as Error, callbacks);
+  }
+}
+
+/* 
+  We generate an explanation for the code by appending the code to the messages
+  and then appending the explanation prompt.
+*/
+async function generateExplanation(
+  messages: Message[],
+  aiResponse: string,
+  executionResults: { stdout: string; result: string },
+  callbacks: StreamingCallbacks
+): Promise<void> {
+  const explanationMessages = [
+    ...messages,
+    { role: "assistant", content: aiResponse },
+    { role: "user", content: EXPLANATION_PROMPT(executionResults.result, executionResults.stdout) },
+  ];
+
+  await streamResponse(
+    explanationMessages as Message[],
+    callbacks.onExplanationUpdate,
+    (explanation: string, explanationUsage: webllm.CompletionUsage) => {
+      callbacks.onExplanationUpdate(explanation);
+      callbacks.onUsageUpdate(explanationUsage);
+    },
+    (error: Error) => handleError(error, callbacks, "Error generating explanation")
+  );
+}
+
+function handleError(error: Error, callbacks: StreamingCallbacks, prefix: string = ""): void {
+  callbacks.onErrorUpdate(true);
+  const errorMessage = prefix ? `${prefix}: ${error.message}` : error.message;
+  callbacks.onResultUpdate(errorMessage);
 }
