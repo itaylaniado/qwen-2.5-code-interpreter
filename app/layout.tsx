@@ -32,16 +32,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${alphaLyrae.variable} antialiased bg-emerald-900`}
+        className={`${geistSans.variable} ${geistMono.variable} ${alphaLyrae.variable} antialiased bg-background text-foreground`}
       >
-        <nav className="bg-emerald-800 bg-opacity-80 backdrop-blur-sm fixed top-0 left-0 right-0 z-10">
+        <nav className="bg-muted bg-opacity-80 backdrop-blur-sm fixed top-0 left-0 right-0 z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-end h-16">
               <div className="flex items-center space-x-4">
-                <Link href="https://github.com/cfahlgren1/qwen-2.5-code-interpreter" target="_blank" rel="noopener noreferrer" className="text-emerald-200 hover:text-emerald-100 transition-colors duration-200">
+                <Link href="https://github.com/cfahlgren1/qwen-2.5-code-interpreter" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
                   <Github className="w-5 h-5" />
                 </Link>
-                <Link href="https://twitter.com/calebfahlgren" target="_blank" rel="noopener noreferrer" className="text-emerald-200 hover:text-emerald-100 transition-colors duration-200">
+                <Link href="https://twitter.com/calebfahlgren" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
                   <Twitter className="w-5 h-5" />
                 </Link>
               </div>

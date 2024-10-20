@@ -19,10 +19,11 @@ interface CodeBlockProps {
   language: string;
   value: string;
 }
+
 const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
   return (
     <div className="relative group">
-      <div className="absolute top-0 right-0 bg-emerald-700 text-emerald-50 rounded-bl px-1.5 py-0.5 text-[10px] font-mono tracking-wide opacity-70 transition-opacity group-hover:opacity-100">
+      <div className="absolute top-0 right-0 bg-accent text-accent-foreground rounded-bl px-1.5 py-0.5 text-[10px] font-mono tracking-wide opacity-70 transition-opacity group-hover:opacity-100">
         {language}
       </div>
       <SyntaxHighlighter 
@@ -56,7 +57,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
           {...props}
         />
       ) : (
-        <code className="px-1 py-0.5 rounded bg-emerald-700 text-emerald-100 text-xs" {...props}>
+        <code className="px-1 py-0.5 rounded bg-muted text-muted-foreground text-xs" {...props}>
           {children}
         </code>
       );

@@ -67,13 +67,13 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-emerald-900">
+    <div className="flex flex-col min-h-screen bg-background">
       <main className="flex-grow flex flex-col items-center justify-center px-4 py-24">
         <div className="font-alphaLyrae text-center mb-8">
-          <h1 className="font-extrabold text-emerald-50 text-4xl sm:text-6xl">
+          <h1 className="font-extrabold text-foreground text-4xl sm:text-6xl">
             Qwen Code Interpreter
           </h1>
-          <p className="text-emerald-200 text-xl sm:text-2xl mt-4">
+          <p className="text-muted-foreground text-xl sm:text-2xl mt-4">
             <TypingAnimation speed={60} text="Qwen-2.5-Coder 1.5B with access to an in-browser code interpreter." />
           </p>
         </div>
@@ -82,11 +82,11 @@ export default function Home() {
           <Button
             onClick={handleLoadModel}
             disabled={isPyodideLoading || isModelLoading}
-            className="mb-4 font-alphaLyrae px-6 py-6 bg-emerald-600 text-emerald-100 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 ease-in-out font-semibold text-lg shadow-md"
+            className="mb-4 font-alphaLyrae px-6 py-6 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 ease-in-out font-semibold text-lg shadow-md"
           >
             {isModelLoading ? (
               <span className="flex items-center">
-                <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-emerald-100" />
+                <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary-foreground" />
                 Loading...
               </span>
             ) : (
@@ -104,45 +104,45 @@ export default function Home() {
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full p-8 font-mono text-sm bg-emerald-800 text-emerald-100 border-emerald-600 focus:ring-emerald-500 focus:border-emerald-500 rounded-md resize-none placeholder:text-emerald-300/70"
+            className="w-full p-8 font-mono text-sm bg-muted text-foreground border-input focus:ring-ring focus:border-input rounded-md resize-none placeholder:text-muted-foreground/70"
             placeholder="How many r's are in 'strawberry'?"
             disabled={!isModelLoaded || isStreaming}
           />
         </form>
 
         {isStreaming && (
-          <p className="text-emerald-200 mt-4">Streaming response...</p>
+          <p className="text-muted-foreground mt-4">Streaming response...</p>
         )}
         {hasError && (
-          <div className="bg-red-900/50 border border-red-700 p-4 rounded-md mt-4 w-full max-w-2xl">
-            <h3 className="text-red-200 font-semibold mb-2">Error:</h3>
-            <pre className="text-red-100 whitespace-pre-wrap text-sm">
+          <div className="bg-destructive/50 border border-destructive p-4 rounded-md mt-4 w-full max-w-2xl">
+            <h3 className="text-destructive-foreground font-semibold mb-2">Error:</h3>
+            <pre className="text-destructive-foreground whitespace-pre-wrap text-sm">
               {result}
             </pre>
           </div>
         )}
         {result && !hasError && (
-          <div className="bg-emerald-800 p-4 rounded-t mt-4 w-full max-w-2xl overflow-auto">
-            <MarkdownRenderer content={result} className="text-emerald-100" />
+          <div className="bg-card p-4 rounded-t mt-4 w-full max-w-2xl overflow-auto">
+            <MarkdownRenderer content={result} className="text-card-foreground" />
           </div>
         )}
         {codeOutput && (
-          <div className="bg-teal-800 p-4 w-full max-w-2xl overflow-auto border-t border-teal-700">
-            <h3 className="text-teal-200 font-semibold mb-2">Code Output:</h3>
+          <div className="bg-[hsl(var(--code-background))] p-4 w-full max-w-2xl overflow-auto border-t border-border">
+            <h3 className="text-popover-foreground font-semibold mb-2">Code Output:</h3>
             <MarkdownRenderer content={`\`\`\`output\n${codeOutput}\n\`\`\``} />
           </div>
         )}
         {resultExplanation && (
-          <div className="bg-emerald-700 p-4 rounded-b w-full max-w-2xl overflow-auto border-t border-emerald-600">
+          <div className="bg-accent p-4 rounded-b w-full max-w-2xl overflow-auto border-t border-border">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-emerald-200 font-semibold">Explanation:</h3>
+              <h3 className="text-accent-foreground font-semibold">Explanation:</h3>
               {usage && (
-                <div className="bg-emerald-600 text-emerald-50 rounded px-1.5 py-0.5 text-xs font-mono tracking-wide">
+                <div className="bg-secondary/20 text-secondary-foreground/80 rounded px-2 py-1 text-xs font-mono tracking-wide">
                   {formatTokensPerSecond(usage.extra.decode_tokens_per_s)} tok/s
                 </div>
               )}
             </div>
-            <MarkdownRenderer content={resultExplanation} className="text-emerald-50" />
+            <MarkdownRenderer content={resultExplanation} className="text-accent-foreground" />
           </div>
         )}
       </main>
