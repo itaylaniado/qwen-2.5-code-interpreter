@@ -48,6 +48,8 @@ self.addEventListener("message", async (event: MessageEvent<WorkerMessage>) => {
       sys.stdout = StringIO()
     `);
 
+    await pyodide.loadPackagesFromImports(python);
+
     const result = await pyodide.runPythonAsync(python);
 
     // Capture stdout content
