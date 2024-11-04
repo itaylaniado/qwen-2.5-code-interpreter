@@ -32,8 +32,10 @@ self.addEventListener("message", async (event: MessageEvent<WorkerMessage>) => {
     pyodide = await self.loadPyodide();
 
     if (pyodide) {
+      await pyodide.loadPackage("micropip");
       await pyodide.loadPackage("numpy");
       await pyodide.loadPackage("pandas");
+      await pyodide.loadPackage("matplotlib");
     }
   }
 
@@ -44,6 +46,7 @@ self.addEventListener("message", async (event: MessageEvent<WorkerMessage>) => {
   try {
     pyodide.runPython(`
       import sys
+      import micropip
       from io import StringIO
       sys.stdout = StringIO()
     `);
@@ -51,6 +54,7 @@ self.addEventListener("message", async (event: MessageEvent<WorkerMessage>) => {
     await pyodide.loadPackagesFromImports(python);
 
     const result = await pyodide.runPythonAsync(python);
+    
 
     // Capture stdout content
     const stdout = pyodide.runPython("sys.stdout.getvalue()");
